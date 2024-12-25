@@ -1,0 +1,144 @@
+{
+  "name": "stire",
+  "displayName": "Stire",
+  "description": "Stire AI helps visualize, explore, and copy folder structures along with file contents. Also allows you to ask questions to AI based on your workspace code.",
+  "version": "1.0.5",
+  "publisher": "Stire",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Chat",
+    "AI",
+    "Other"
+  ],
+  "icon": "media/StireAI-icon.png",
+  "activationEvents": [
+    "onView:fileTreeView",
+    "onView:stierAIAsk",
+    "onCommand:fileTreeView.refresh",
+    "onCommand:fileTreeView.copyFolderStructure",
+    "onCommand:fileTreeView.copyEntireStructure",
+    "onCommand:fileTreeView.copyStructureOnly",
+    "onCommand:stierAI.askQuestion",
+    "onCommand:stierAI.setApiKey"
+  ],
+  "main": "./extension.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nova-Mok/Stire-AI.git"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "stierAI",
+          "title": "Stire AI",
+          "icon": "media/StireAI-icon.png"
+        }
+      ]
+    },
+    "views": {
+      "stierAI": [
+        {
+          "id": "fileTreeView",
+          "name": "Stire Structure"
+        },
+        {
+          "id": "stierAIAsk",
+          "name": "Stire AI Ask"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "fileTreeView.refresh",
+        "title": "Stire: Refresh File Tree",
+        "category": "Stire AI"
+      },
+      {
+        "command": "fileTreeView.copyFolderStructure",
+        "title": "Stire: Copy Folder Structure with Contents",
+        "category": "Stire AI"
+      },
+      {
+        "command": "fileTreeView.copyEntireStructure",
+        "title": "Stire: Copy Entire Workspace Structure with Contents",
+        "category": "Stire AI"
+      },
+      {
+        "command": "fileTreeView.copyStructureOnly",
+        "title": "Stire: Copy Folder Structure Only",
+        "category": "Stire AI"
+      },
+      {
+        "command": "stierAI.askQuestion",
+        "title": "Stire AI: Ask a Question",
+        "category": "Stire AI"
+      },
+      {
+        "command": "stierAI.setApiKey",
+        "title": "Stire AI: Set OpenAI API Key",
+        "category": "Stire AI"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Stire AI Configuration",
+      "properties": {
+        "stierAI.openaiApiKey": {
+          "type": "string",
+          "description": "Your OpenAI API Key.",
+          "default": ""
+        },
+        "stierAI.openaiModel": {
+          "type": "string",
+          "description": "The OpenAI model to use.",
+          "default": "gpt-4o",
+          "enum": [
+            "o1-mini",
+            "gpt-4o-mini",
+            "gpt-4o",
+            "o1"
+          ]
+        }
+      }
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "fileTreeView.refresh",
+          "when": "view == fileTreeView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "fileTreeView.copyStructureOnly",
+          "when": "view == fileTreeView",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "stierAI.askQuestion",
+          "when": "true",
+          "group": "Stire AI"
+        },
+        {
+          "command": "stierAI.setApiKey",
+          "when": "true",
+          "group": "Stire AI"
+        }
+      ]
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "axios": "^1.4.0"
+  },
+  "devDependencies": {
+    "vscode": "^1.1.37"
+  }
+}

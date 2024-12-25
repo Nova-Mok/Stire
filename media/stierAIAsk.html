@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stire AI Ask</title>
+  <style>
+    :root {
+      --bg-color: #0a0f15;
+      --container-bg: #0f1e25;
+      --primary-accent: #08f7fe; /* Neon Blue */ 
+      --secondary-accent: #00ffdd; /* Neon Turquoise */
+      --text-color: #cfcfcf;
+      --user-message-bg: #00ffdd22;
+      --assistant-message-bg: #08f7fe22;
+      --box-border-color: #3c3c3c;
+      --code-bg: #172731;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 1rem;
+      gap: 0.75rem;
+    }
+
+    /* Title */
+    h1 {
+      font-weight: 600;
+      font-size: 1.25rem;
+      text-transform: uppercase;
+      color: var(--primary-accent);
+      text-shadow: 0 0 6px var(--primary-accent);
+      margin-bottom: 0.5rem;
+      align-self: center;
+    }
+
+    /* ---------- Tree View Section ---------- */
+    .tree-container {
+      background: var(--container-bg);
+      border-radius: 8px;
+      padding: 0.8rem;
+      box-shadow: 0 0 8px rgba(0, 255, 221, 0.2);
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .tree-container h3 {
+      margin-bottom: 0.5rem;
+      color: var(--secondary-accent);
+    }
+    ul.tree {
+      list-style: none;
+      margin-left: 0.5rem;
+    }
+    ul.tree li {
+      margin: 4px 0;
+      cursor: default;
+    }
+    .folder-label {
+      font-weight: 600;
+      color: var(--secondary-accent);
+      cursor: pointer;
+    }
+    .folder-label::before {
+      content: "▸ ";
+      transition: transform 0.2s;
+    }
+    .folder.collapsed > .folder-label::before {
+      transform: rotate(0deg);
+    }
+    .folder.expanded > .folder-label::before {
+      transform: rotate(90deg);
+      content: "▾ ";
+    }
+    .folder ul {
+      margin-left: 1.2rem;
+      padding-left: 0.8rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      display: none;
+    }
+    .folder.expanded > ul {
+      display: block;
+    }
+    .file-label {
+      margin-left: 1.5rem;
+      cursor: pointer;
+    }
+    .file-label input[type="checkbox"] {
+      margin-right: 0.3rem;
+      transform: scale(1.1);
+      vertical-align: middle;
+    }
+
+    /* ---------- Chat Container ---------- */
+    .chat-container {
+      flex: 1;
+      background-color: var(--container-bg);
+      border-radius: 8px;
+      padding: 0.8rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 8px rgba(8, 247, 254, 0.2);
+    }
+    .message {
+      margin-bottom: 1rem;
+      max-width: 70%;
+      word-wrap: break-word;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      position: relative;
+      line-height: 1.4;
+      animation: fadeInUp 0.2s ease-out;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .user-message {
+      background-color: var(--user-message-bg);
+      align-self: flex-end;
+      text-align: right;
+      border: 1px solid var(--secondary-accent);
+      box-shadow: 0 0 6px var(--secondary-accent);
+    }
+    .assistant-message {
+      background-color: var(--assistant-message-bg);
+      align-self: flex-start;
+      text-align: left;
+      border: 1px solid var(--primary-accent);
+      box-shadow: 0 0 6px var(--primary-accent);
+    }
+
+    /* ---------- Spinner ---------- */
+    #loadingSpinner {
+      display: none;
+      margin: 0.5rem auto;
+    }
+    .spinner {
+      border: 4px solid #999;
+      border-top: 4px solid var(--primary-accent);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ---------- Input Section ---------- */
+    .input-section {
+      display: flex;
+      flex-direction: column;
+      background: var(--container-bg);
+      padding: 0.8rem;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.05);
+    }
+    .input-section h3 {
+      margin-bottom: 0.5rem;
+      color: var(--primary-accent);
+      text-transform: uppercase;
+      font-size: 0.95rem;
+    }
+    #questionBox {
+      width: 100%;
+      height: 70px;
+      margin-bottom: 0.5rem;
+      background: var(--bg-color);
+      color: var(--text-color);
+      border: 1px solid var(--box-border-color);
+      border-radius: 4px;
+      padding: 0.5rem;
+      resize: none;
+    }
+    #questionBox:focus {
+      outline: 1px solid var(--secondary-accent);
+    }
+    .buttons {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+    .buttons button {
+      cursor: pointer;
+      color: #ffffff;
+      background-color: var(--primary-accent);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+    .buttons button:hover {
+      background-color: var(--secondary-accent);
+      text-shadow: 0 0 4px var(--secondary-accent);
+    }
+
+    /* ---------- Code Blocks ---------- */
+    .code-block {
+      position: relative;
+      background-color: var(--code-bg);
+      border: 1px solid var(--box-border-color);
+      border-radius: 4px;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.05);
+    }
+    .code-block button.copy-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background-color: var(--primary-accent);
+      border: none;
+      color: #fff;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .code-block button.copy-btn:hover {
+      background-color: var(--secondary-accent);
+      text-shadow: 0 0 4px var(--secondary-accent);
+    }
+    pre, code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      color: #f2f2f2;
+    }
+
+    /* Hidden responseBox if your extension references it */
+    #responseBox {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Title -->
+    <h1>Stire AI Ask</h1>
+
+    <!-- Tree View of Files -->
+    <div class="tree-container">
+      <h3>Choose files/folders to include in context:</h3>
+      <ul id="fileTree" class="tree">
+        <!-- We'll dynamically inject a collapsible tree here -->
+      </ul>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container" id="chatContainer"></div>
+
+    <!-- Spinner for "Assistant typing" -->
+    <div id="loadingSpinner">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Input area (question + buttons) -->
+    <div class="input-section">
+      <h3>Ask a question:</h3>
+      <textarea id="questionBox"></textarea>
+      <div class="buttons">
+        <button id="askBtn">Ask</button>
+        <button id="setApiKeyBtn">Set API Key</button>
+      </div>
+    </div>
+
+    <!-- Hidden fallback area (in case extension.js references it) -->
+    <div id="responseBox"></div>
+  </div>
+
+  <script>
+    /* Acquire VS Code API */
+    const vscode = acquireVsCodeApi();
+
+    /* 
+      1) We'll replace this placeholder with a JSON array of file paths from the extension.
+         Example: ["Dockerfile", "FP/IAC/kubernetes/non_privileged_pod.yaml", ... ]
+         We'll parse them, build a tree, and render.
+    */
+    const FILE_PATHS = JSON.parse(`{{FILE_PATH_JSON}}`); 
+    // If you prefer, extension.js can directly generate HTML, 
+    // but here we do it in JS so we can show collapsible folders.
+
+    const askBtn = document.getElementById("askBtn");
+    const setApiKeyBtn = document.getElementById("setApiKeyBtn");
+    const questionBox = document.getElementById("questionBox");
+    const chatContainer = document.getElementById("chatContainer");
+    const loadingSpinner = document.getElementById("loadingSpinner");
+    const responseBox = document.getElementById("responseBox");
+    const fileTree = document.getElementById("fileTree");
+
+    /* ============== A) Build and Render the Tree ============== */
+
+    // 1. Convert the flat array of paths into a nested object structure
+    function buildTree(paths) {
+      const root = {};
+
+      for (const fullPath of paths) {
+        // Exclude image files, 'Images' folders, or 'assets' folder
+        // (You can tweak these as needed)
+        if (shouldExclude(fullPath)) {
+          continue;
+        }
+
+        const parts = fullPath.split("/");
+        let currentNode = root;
+
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          // If it doesn't exist, create empty object
+          if (!currentNode[part]) {
+            currentNode[part] = {};
+          }
+          currentNode = currentNode[part];
+        }
+      }
+      return root;
+    }
+
+    function shouldExclude(pathStr) {
+      const lower = pathStr.toLowerCase();
+      // Exclude images or 'Images' or 'assets' folder
+      if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".gif")) {
+        return true;
+      }
+      // If path contains 'images/' or 'assets/'
+      if (lower.includes("/images/") || lower.includes("/assets/")) {
+        return true;
+      }
+      return false;
+    }
+
+    // 2. Convert our nested object structure into nested <li> elements
+    //    Each folder is collapsible, each file has a checkbox (though in this simplified approach,
+    //    folders are also represented as keys).
+    function renderTree(node, parentPath = "") {
+      const ul = document.createElement("ul");
+      ul.className = "tree";
+
+      for (const key of Object.keys(node).sort()) {
+        // We'll guess that if a key has no further keys, it's a file; otherwise it's a folder
+        const childrenKeys = Object.keys(node[key]);
+        const isFile = childrenKeys.length === 0;
+
+        const li = document.createElement("li");
+
+        if (isFile) {
+          // It's a file
+          const filePath = parentPath ? `${parentPath}/${key}` : key;
+          const label = document.createElement("label");
+          label.className = "file-label";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.name = "selectedFiles";
+          checkbox.value = filePath;
+          // On change, we let extension.js know
+          checkbox.addEventListener("change", () => {
+            vscode.postMessage({
+              command: "toggleFileSelection",
+              filePath,
+            });
+          });
+
+          label.appendChild(checkbox);
+          label.appendChild(document.createTextNode(" " + key));
+          li.appendChild(label);
+
+        } else {
+          // It's a folder
+          const folderDiv = document.createElement("div");
+          folderDiv.classList.add("folder-label");
+          folderDiv.textContent = key;
+
+          // Expand/collapse logic
+          li.classList.add("folder", "collapsed");
+          folderDiv.addEventListener("click", () => {
+            li.classList.toggle("collapsed");
+            li.classList.toggle("expanded");
+          });
+
+          li.appendChild(folderDiv);
+
+          // Recursively render children
+          const newParentPath = parentPath ? `${parentPath}/${key}` : key;
+          const childUl = renderTree(node[key], newParentPath);
+          li.appendChild(childUl);
+        }
+        ul.appendChild(li);
+      }
+      return ul;
+    }
+
+    // Build & render
+    const fileTreeData = buildTree(FILE_PATHS);
+    const renderedTree = renderTree(fileTreeData, "");
+    fileTree.appendChild(renderedTree);
+
+    /* ============== B) Chat + Q&A Logic ============== */
+
+    // 1. Ask Button
+    askBtn.addEventListener("click", () => {
+      const text = questionBox.value.trim();
+      if (!text) return;
+
+      addUserMessage(text);
+      showLoading();
+
+      // Gather selected file paths from checkboxes
+      // (Though we also send them to extension.js upon each toggle, 
+      //  you can re-gather them here if you prefer.)
+      const checkboxes = document.querySelectorAll('input[name="selectedFiles"]:checked');
+      const selectedFiles = Array.from(checkboxes).map((cb) => cb.value);
+
+      vscode.postMessage({
+        command: "askQuestion",
+        text,
+        selectedFiles,
+      });
+
+      questionBox.value = "";
+    });
+
+    // 2. Set API Key Button
+    setApiKeyBtn.addEventListener("click", () => {
+      vscode.postMessage({
+        command: "setApiKey",
+      });
+    });
+
+    // 3. Listen to extension.js messages
+    window.addEventListener("message", (event) => {
+      const message = event.data;
+      switch (message.command) {
+        case "displayResponse":
+          hideLoading();
+          addAssistantMessage(message.text);
+          responseBox.textContent = message.text;
+          break;
+        case "promptApiKey":
+          alert("Please set your OpenAI API Key first.");
+          hideLoading();
+          break;
+        case "showToast":
+          alert(message.message);
+          break;
+      }
+    });
+
+    /* ---------- Chat UI Helpers ---------- */
+    function addUserMessage(text) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message", "user-message");
+      msgDiv.textContent = text;
+      chatContainer.appendChild(msgDiv);
+      scrollChatToBottom();
+    }
+    function addAssistantMessage(rawText) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message", "assistant-message");
+      // Convert any triple-backtick code blocks
+      const parsedHTML = parseCodeBlocks(rawText);
+      msgDiv.innerHTML = parsedHTML;
+      chatContainer.appendChild(msgDiv);
+      attachCopyButtons(msgDiv);
+      scrollChatToBottom();
+    }
+    function showLoading() {
+      loadingSpinner.style.display = "block";
+    }
+    function hideLoading() {
+      loadingSpinner.style.display = "none";
+    }
+    function scrollChatToBottom() {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    /* ---------- Code Block Parsing + Copy ---------- */
+    function parseCodeBlocks(text) {
+      const codeBlockRegex = /```([\s\S]*?)```/g;
+      let html = "";
+      let lastIndex = 0;
+      let match;
+
+      while ((match = codeBlockRegex.exec(text)) !== null) {
+        const codeContent = match[1];
+        html += escapeHTML(text.slice(lastIndex, match.index));
+        html += `
+          <div class="code-block">
+            <button class="copy-btn">Copy</button>
+            <pre><code>${escapeHTML(codeContent)}</code></pre>
+          </div>
+        `;
+        lastIndex = codeBlockRegex.lastIndex;
+      }
+      html += escapeHTML(text.slice(lastIndex));
+      return html;
+    }
+    function attachCopyButtons(parent) {
+      const copyBtns = parent.querySelectorAll(".copy-btn");
+      copyBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const codeElement = btn.nextElementSibling;
+          if (!codeElement) return;
+          const codeText = codeElement.innerText.trim();
+          copyToClipboard(codeText);
+        });
+      });
+    }
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(
+        () => {
+          vscode.postMessage({ command: "showToast", message: "Code copied!" });
+        },
+        () => {
+          vscode.postMessage({ command: "showToast", message: "Failed to copy code." });
+        }
+      );
+    }
+    function escapeHTML(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
